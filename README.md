@@ -1,19 +1,32 @@
 # AI-Powered Website Link Analysis API
 
-A production-ready **FastAPI** application that accepts any public website URL, safely extracts and cleans its live HTML content (with SSRF protection), analyzes it using an LLM with strict Pydantic structured outputs, and returns comprehensive business, competitor, search query, SEO, service, and target audience insights in JSON format.
+A production-ready **FastAPI** application built with **Python 3.11, FastAPI, Uvicorn, Pydantic v2, HTTPX, BeautifulSoup4, and Google Gemini (`google-genai`)** (with optional OpenAI and Anthropic support). It accepts any public website URL, safely extracts and cleans its live HTML content with SSRF protection, analyzes it using an LLM with strict Pydantic structured outputs, and returns business, competitor, search query, SEO, service, and target audience insights in JSON format.
+
+---
+
+## Live Deployment
+
+| Resource | URL |
+| :--- | :--- |
+| **Live Application** | https://ai-link-analysis-api-q6lc.onrender.com |
+| **Swagger Documentation** | https://ai-link-analysis-api-q6lc.onrender.com/docs |
+| **API Endpoint (`POST`)** | https://ai-link-analysis-api-q6lc.onrender.com/link-analysis |
+| **Health Check (`GET`)** | https://ai-link-analysis-api-q6lc.onrender.com/health |
 
 ---
 
 ## Table of Contents
 
-1. [Features & Architecture](#features--architecture)
-2. [Project Structure](#project-structure)
-3. [Quick Start (Local Setup)](#quick-start-local-setup)
-4. [API Usage & Sample Request / Response](#api-usage--sample-request--response)
-5. [LLM Platform & Model Research – Cost, Speed and Accuracy](#llm-platform--model-research--cost-speed-and-accuracy)
-6. [Security & Error Handling](#security--error-handling)
-7. [Running Tests & Benchmarks](#running-tests--benchmarks)
-8. [Deployment Guide](#deployment-guide)
+1. [Live Deployment](#live-deployment)
+2. [Features & Architecture](#features--architecture)
+3. [Project Structure](#project-structure)
+4. [Quick Start (Local Setup)](#quick-start-local-setup)
+5. [API Usage & Sample Request / Response](#api-usage--sample-request--response)
+6. [API Testing Evidence](#api-testing-evidence)
+7. [LLM Platform & Model Research – Cost, Speed and Accuracy](#llm-platform--model-research--cost-speed-and-accuracy)
+8. [Security & Error Handling](#security--error-handling)
+9. [Running Tests & Benchmarks](#running-tests--benchmarks)
+10. [Deployment Guide](#deployment-guide)
 
 ---
 
@@ -27,7 +40,7 @@ A production-ready **FastAPI** application that accepts any public website URL, 
   - Competitor entries explicitly distinguish `ai_inferred` vs `website_mentioned`.
   - Services explicitly distinguish `extracted_from_website` vs `inferred_recommendation`.
   - Never fabricates search volumes or ranking positions.
-- **Cost Optimization Built-In**: HTML noise stripping, line deduplication, 10,000-character content budgeting, single-pass structured extraction, and bounded TTL URL caching.
+- **Cost Optimization Built-In**: HTML noise stripping, line deduplication, 6,500-character content budgeting, minimal thinking configuration, single-pass structured extraction, and bounded TTL URL caching.
 
 ### Processing Pipeline
 
@@ -73,6 +86,9 @@ ai-link-analysis/
 │   └── utils/
 │       ├── __init__.py
 │       └── validators.py           # URL normalization & DNS SSRF protection
+├── docs/
+│   └── images/
+│       └── swagger-api-test.png    # Deployed Swagger UI test screenshot
 ├── scripts/
 │   └── benchmark_llm.py            # Live latency & token benchmark utility
 ├── tests/
@@ -148,6 +164,11 @@ uvicorn app.main:app --host 0.0.0.0 --port 4000
 ### Endpoint
 
 ```http
+# Deployed
+POST https://ai-link-analysis-api-q6lc.onrender.com/link-analysis
+Content-Type: application/json
+
+# Local
 POST http://localhost:4000/link-analysis
 Content-Type: application/json
 ```
@@ -155,7 +176,7 @@ Content-Type: application/json
 ### Sample `curl` Request
 
 ```bash
-curl -X POST "http://localhost:4000/link-analysis" \
+curl -X POST "https://ai-link-analysis-api-q6lc.onrender.com/link-analysis" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://stripe.com"}'
 ```
@@ -487,6 +508,20 @@ curl -X POST "http://localhost:4000/link-analysis" \
 
 ---
 
+## API Testing Evidence
+
+![Deployed Swagger UI test of POST /link-analysis returning HTTP 200 OK for https://stripe.com](docs/images/swagger-api-test.png)
+
+*Caption: Live verification via Swagger UI (`https://ai-link-analysis-api-q6lc.onrender.com/docs`) showing the deployed FastAPI endpoint `POST /link-analysis` returning **HTTP 200 OK** with `"success": true` when testing `https://stripe.com`. The validated JSON response includes all five required analysis sections:*
+
+1. **Competitor vs. Your Brand Details** (`analysis.competitor_analysis`) — brand overview, category, products/services, AI-labeled competitors (`source_basis: "ai_inferred"`), strengths, opportunities, and side-by-side comparison table.
+2. **Top 5 Target Search Queries** (`analysis.target_search_queries`) — five customer search queries mapped across Google, Facebook, Instagram, LinkedIn, and X with intent, relevance, and target audience (no invented search volumes).
+3. **SEO Improvement Recommendations** (`analysis.seo_improvements`) — primary, secondary, long-tail, and business keywords, optimized title and meta description compared against extracted baseline tags, and supporting content ideas.
+4. **Top 5 Services** (`analysis.top_services`) — five core offerings grounded in extracted website content (`source_type: "extracted_from_website"` / `"inferred_recommendation"`).
+5. **Target Audience Identification** (`analysis.target_audience`) — primary/secondary audiences, industries, business types, customer profiles, geographical focus, needs, challenges, interests, and marketing segments.
+
+---
+
 ## LLM Platform & Model Research – Cost, Speed and Accuracy
 
 > **Methodology Transparency**: Pricing and context window figures below are sourced from official provider documentation (Google AI `ai.google.dev`, OpenAI API Pricing, Anthropic Pricing). All Google Gemini latency, token, and cost metrics reported in the benchmark tables below are **Measured** from live API runs against real websites; OpenAI and Anthropic latency/accuracy entries are explicitly labeled as **Estimated** because only Google Gemini was configured and executed live.
@@ -604,9 +639,10 @@ python scripts/benchmark_llm.py https://fastapi.tiangolo.com https://stripe.com
    - `MAX_CONTENT_CHARS=6500`
    - `GEMINI_API_KEY=<your-key>`
 6. Verify live deployment:
-   - `https://<your-service>.onrender.com/health`
-   - `https://<your-service>.onrender.com/docs`
-   - `POST https://<your-service>.onrender.com/link-analysis`
+   - Live Application: https://ai-link-analysis-api-q6lc.onrender.com
+   - Health Check: https://ai-link-analysis-api-q6lc.onrender.com/health
+   - Swagger UI: https://ai-link-analysis-api-q6lc.onrender.com/docs
+   - API Endpoint: `POST` https://ai-link-analysis-api-q6lc.onrender.com/link-analysis
 
 ### Option 2: Docker (Railway / Fly.io / Cloud Run)
 
